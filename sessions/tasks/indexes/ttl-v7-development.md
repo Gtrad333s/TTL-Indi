@@ -9,7 +9,6 @@ description: Tasks related to the TTL indicator v7 rebuild with DRY principles, 
 ## Active Tasks
 
 ### High Priority
-- `h-fix-ttl-v7-divider-rendering.md` - Fix quarter divider stacking and labeling bugs in Phase 1
 - `h-fix-cycle-boundary-detection-bugs.md` - Fix cycle start detection and Qx partial period dividers
 
 ### Medium Priority
@@ -20,4 +19,4 @@ description: Tasks related to the TTL indicator v7 rebuild with DRY principles, 
 ### Investigate
 
 ## Completed Tasks
-<!-- Move tasks here when completed, maintaining the format -->
+- `h-fix-ttl-v7-divider-rendering.md` - Fixed quarter divider stacking via timeframe filtering (2025-01-08)

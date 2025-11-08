@@ -577,7 +577,10 @@ Tracks the state of one fractal cycle. Five instances: `monthly_cycle`, `weekly_
 - [ ] Object count limits not exceeded (check with unlimited lookback + fast cycles)
 
 ## User Notes
-<!-- Any specific notes or requirements from the developer -->
+
+**PineScript v6 Reference:**
+- Manual/Documentation: https://github.com/codenamedevan/pinescriptv6.git
+- Use this repo for researching label positioning solutions (yloc modes, viewport-relative positioning)
 
 ## Work Log
 <!-- Updated as work progresses -->

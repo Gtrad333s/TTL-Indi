@@ -27,3 +27,28 @@ At 85% context usage, remind the user they can use "squish" to run compaction pr
 - **start^** - Start/resume task
 - **finito** - Complete task
 - **squish** - Compact context
+
+---
+
+## TTL Development Principles
+
+### DRY Checklist
+When reviewing or writing code, watch for:
+- **Copy-paste cycle logic** - Same code repeated for Monthly/Weekly/Daily/Session/Micro
+- **Hardcoded magic numbers** - Use constants or threshold maps instead
+- **Separate functions per cycle** - Use universal processors with parameters
+- **Multiple related variables** - Group into UDTs (User-Defined Types)
+- **Rule of Three** - Don't abstract until pattern appears 3 times
+
+### Performance Checklist
+- **Profile first** - Test on multiple timeframes before optimizing
+- **Use `var` for static data** - Don't recalculate every bar
+- **Cache repeated calculations** - Store in variables if used multiple times
+- **Limit array sizes** - Max 100 items, use `array.shift()` to maintain cap
+- **Delete before creating** - Remove old drawing objects to stay within 500 limit
+- **Lazy rendering** - Only draw on `barstate.islast` for correct timeframe
+
+### When to Abstract
+1. **First occurrence** - Write inline, no abstraction
+2. **Second occurrence** - Note duplication, consider if it will happen again
+3. **Third occurrence** - Abstract into universal function with parameters
