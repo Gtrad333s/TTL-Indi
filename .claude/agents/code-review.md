@@ -319,6 +319,115 @@ prev_weekly_q := f_process_cycle_quarters(weekly_cycle, ...)
 7. **Unbounded arrays** (causes memory issues)
 8. **Off-screen rendering** (positioning bugs)
 
+---
+
+## PineScript DRY & Performance Principles
+
+### DRY Methods for PineScript v6
+
+**1. Functions (Universal Processors)**
+- Abstract common cycle logic into reusable functions
+- ✅ GOOD: `f_process_cycle_quarters()` handles ALL 5 cycles (50 lines total)
+- ❌ BAD: 5 separate cycle blocks with copy-pasted logic (2000 lines total)
+- **Review checkpoint**: If you see the same logic repeated for multiple cycles, flag as DRY violation
+
+**2. UDTs (User-Defined Types) instead of Classes**
+- Group related data into semantic structures
+- ✅ GOOD: `QuarterDividers` UDT with `q1_line`, `q1_label` fields
+- ❌ BAD: 8 separate var declarations or array indices
+- **Review checkpoint**: Multiple related variables that could be grouped into a UDT
+
+**3. Libraries for Shared Logic**
+- Import common functionality from published libraries
+- ✅ GOOD: `import GmoneyT/TTL_CycleEngine/3 as CycleEngine`
+- ❌ BAD: Reimplementing quarter calculation logic in every indicator
+- **Review checkpoint**: Logic that exists in published libraries being reimplemented
+
+**4. Constants and Threshold Maps**
+- Centralize hardcoded "magic numbers" into named constants or maps
+- ✅ GOOD: `thresholds = map.new<string, int>().put("Monthly", 28).put("Weekly", 7)`
+- ❌ BAD: `if cycle_name == "Monthly" then 28 else if cycle_name == "Weekly" then 7...`
+- **Review checkpoint**: Hardcoded numbers scattered throughout code
+
+**5. Parameter-Driven Functions instead of Templates**
+- Pass cycle-specific data as parameters to universal functions
+- ✅ GOOD: `f_render_dividers(monthly_cycle, "Monthly", monthly_dividers)`
+- ❌ BAD: Separate `f_render_monthly_dividers()`, `f_render_weekly_dividers()` functions
+- **Review checkpoint**: Nearly identical functions that differ only in data/constants
+
+**6. Rule of Three**
+- Only abstract after encountering the pattern 3 times
+- First occurrence: Write it inline
+- Second occurrence: Note the duplication
+- Third occurrence: Abstract into reusable function
+- **Review checkpoint**: Premature abstraction (abstracting on first duplication)
+
+### Performance Principles for PineScript v6
+
+**1. Efficient Data Structures**
+- Arrays for bulk historical data (with size limits)
+- UDTs for grouped state
+- `var` for values that persist across bars (calculated once)
+- `varip` for values that persist across real-time ticks
+- **Review checkpoint**: Regular variables used for static data (recalculated every bar)
+
+**2. Profile Before Optimizing**
+- Test on multiple timeframes first
+- Identify which cycle/function is actually slow
+- Avoid optimizing non-bottleneck code
+- **Review checkpoint**: Complex optimization without evidence of performance issue
+
+**3. Optimize Bar-by-Bar Execution**
+- Move static calculations outside bar loop using `var`
+- Cache repeated calculations in variables
+- Avoid recalculating when values don't change
+- ❌ BAD: Calculating `highest_visible - (price_range * 0.3)` on every bar
+- ✅ GOOD: Calculate once, store in `var`, only recalculate when needed
+- **Review checkpoint**: Heavy calculations inside loops or repeated every bar
+
+**4. Reduce Memory Footprint**
+- Limit array sizes (e.g., `if array.size(hist) > 100 then array.shift(hist)`)
+- Delete unused drawing objects before creating new ones
+- Stay within PineScript limits (500 lines, 500 labels)
+- **Review checkpoint**: Unbounded array growth, objects never deleted
+
+**5. Minimize Series Lookups**
+- Avoid unnecessary `[0]` indexing (current bar is implicit)
+- Cache series values if used multiple times
+- **Review checkpoint**: Repeated series lookups that could be cached
+
+**6. Lazy Rendering**
+- Only render on `barstate.islast` (last bar of chart)
+- Only render cycles appropriate for current timeframe
+- Check conditions before creating objects, not after
+- ✅ GOOD: `if barstate.islast and f_should_show_cycle() then create_dividers()`
+- ❌ BAD: Creating dividers on every bar, then deleting most of them
+- **Review checkpoint**: Drawing objects created on every bar or for wrong timeframes
+
+### TTL-Specific DRY Violations to Watch For
+
+**Copy-Paste Cycle Logic:**
+```pinescript
+// ❌ BAD - Repeated for each cycle
+if is_new_monthly
+    monthly_cycle.q1_start_bar := bar_index
+if is_new_weekly
+    weekly_cycle.q1_start_bar := bar_index
+// ... 400 lines × 5 cycles = 2000 lines
+```
+
+**Universal Processor Pattern:**
+```pinescript
+// ✅ GOOD - Write once, call 5 times
+f_process_cycle_quarters(cycle, current_q, prev_q, ...) =>
+    if current_q == 1
+        cycle.q1_start_bar := bar_index
+    // ... universal logic (50 lines total)
+
+prev_monthly_q := f_process_cycle_quarters(monthly_cycle, monthly_q, ...)
+prev_weekly_q := f_process_cycle_quarters(weekly_cycle, weekly_q, ...)
+```
+
 ### Important Output Note
 
 IMPORTANT: Neither the caller nor the user can see your execution unless you return it as your response. Your complete code review must be returned as your final response, not saved as a separate file.

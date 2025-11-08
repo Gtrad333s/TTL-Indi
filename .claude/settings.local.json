@@ -5,7 +5,12 @@
       "Bash(git config:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(sessions status:*)",
+      "Bash(cat:*)",
+      "Bash(git submodule:*)",
+      "Bash(test:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

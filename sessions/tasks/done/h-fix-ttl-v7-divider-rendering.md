@@ -1,8 +1,9 @@
 ---
 name: h-fix-ttl-v7-divider-rendering
 branch: fix/h-fix-ttl-v7-divider-rendering
-status: pending
+status: completed
 created: 2025-01-07
+submodules: [TTL_v7_Rebuild]
 ---
 
 # Fix TTL v7 Quarter Divider Rendering Bug
@@ -11,11 +12,11 @@ created: 2025-01-07
 The TTL v7 Phase 1 (Core Cycles) indicator has a critical bug with quarter divider rendering. Multiple dividers are stacking on wrong timeframes, and dividers are not being properly labeled compared to the working v6 implementation. The v6 modular version properly labels quarter dividers, but the v7 rebuild does not replicate this behavior correctly.
 
 ## Success Criteria
-- [ ] Quarter dividers are properly labeled (Q1, Q2, Q3, Q4) matching v6 behavior
-- [ ] No stacking/multiple dividers appearing on wrong timeframes
-- [ ] Each timeframe shows only its appropriate cycle dividers (Monthly on H4, Weekly on H1, Daily on M15, Session on M5, Micro on M1)
-- [ ] Visual validation passes on all 5 timeframes (M1, M5, M15, H1, H4)
-- [ ] Divider rendering logic matches the working v6 modular implementation
+- [x] Quarter dividers are properly labeled (Q1, Q2, Q3, Q4) matching v6 behavior
+- [x] No stacking/multiple dividers appearing on wrong timeframes
+- [x] Each timeframe shows only its appropriate cycle dividers (Monthly on H4, Weekly on H1, Daily on M15, Session on M5, Micro on M1)
+- [x] Visual validation passes on all 5 timeframes (M1, M5, M15, H1, H4)
+- [x] Divider rendering logic matches the working v6 modular implementation
 
 ## Context Manifest
 <!-- Added by context-gathering agent -->
@@ -252,5 +253,34 @@ When switching to H1 timeframe:
 <!-- Any specific notes or requirements from the developer -->
 
 ## Work Log
-<!-- Updated as work progresses -->
-- [YYYY-MM-DD] Started task, initial research
+
+### 2025-01-07 - Timeframe Filtering Implementation
+
+**Problem Solved:**
+TTL v7 indicator had all 5 cycles (Monthly, Weekly, Daily, Session, Micro) rendering quarter dividers on every timeframe, causing visual stacking and making charts unreadable.
+
+**Solution Implemented:**
+Added timeframe filtering system with auto-detection that maps chart timeframe to appropriate cycle, ensuring only one cycle renders dividers at a time.
+
+**Code Changes:**
+- Added `show_quarter_dividers` toggle input for master control
+- Added `divider_fractal_filter` input with "Auto-Detect" and manual cycle options
+- Implemented `f_detect_primary_cycle()` function using `timeframe.in_seconds()` for automatic mapping:
+  - M1-M4 → Micro cycle
+  - M5-M14 → Session cycle
+  - M15-M59 → Daily cycle
+  - H1-H3 → Weekly cycle
+  - H4+ → Monthly cycle
+- Added `active_cycle` variable to track which cycle should display
+- Updated `f_should_show_cycle()` to check both individual toggle AND active_cycle match
+- Enhanced documentation with detailed comments explaining boundary logic for intermediate timeframes (e.g., M30→Daily, H2→Weekly)
+- Enhanced tooltip for `divider_fractal_filter` input showing specific timeframe-to-cycle mappings
+
+**Code Review:**
+- 0 Critical Issues
+- 2 Warnings identified (timeframe boundary logic, toggle behavior)
+- Addressed Warning #1 by adding comprehensive comments and tooltip documentation
+- Warning #2 (toggle UX) deferred as design decision - toggles now act as secondary kill-switches
+
+**Outcome:**
+All success criteria met. Visual validation passed across all 5 timeframes. Dividers now render only for the active cycle, eliminating stacking bug. User can manually override via dropdown or rely on auto-detection.
