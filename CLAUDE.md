@@ -20,6 +20,13 @@ At 85% context usage, remind the user they can use "squish" to run compaction pr
 ### TTL Cycle Independence Principle
 **CRITICAL**: Each of the 5 fractal cycles (Monthly/Weekly/Daily/Session/Micro) must process in complete isolation. Their calculations, state, and time boundaries must NOT interfere with each other. Always verify cycle independence when reviewing or implementing cycle-related code.
 
+### TTL Two-Stage Cycle Detection Pattern
+**ARCHITECTURAL PATTERN**: Cycle detection uses a two-stage approach (established in v6, restored in v7):
+- **Stage 1**: Explicit cycle start detection (`is_new_weekly`, `is_new_daily`, `is_new_session`) handles Q1 dividers and cycle initialization
+- **Stage 2**: Quarter transition detection (`prev_q` comparison) handles Q2/Q3/Q4 transitions
+- **Why separate**: Collapsing into single stage causes Q1 detection failures due to `prev_q` initialization issues
+- **Key implementation**: Cycle start blocks set `prev_q := 0` to ensure first quarter transition works correctly
+
 ### Key Trigger Phrases
 - **yert** - Activate implementation mode (user approves proposed todos)
 - **silence** - Return to discussion mode
