@@ -102,3 +102,110 @@ Either:
 ## Remember
 
 You are the guardian of institutional knowledge. Your updates help future developers avoid the same surprises and pitfalls. Only document true discoveries that change understanding of the system, not implementation details or choices.
+
+---
+
+## TTL Indicator Project-Specific Guidance
+
+**Project Context**: TTL v7 indicator with fractal cycle analysis for TradingView
+
+### Understanding TTL Fractal Cycle Structure
+
+The TTL indicator analyzes market behavior through **5 nested fractal cycles**:
+
+```
+Monthly (H4 timeframe)
+  └─ Weekly (H1 timeframe)
+      └─ Daily (M15 timeframe)
+          └─ Session (M5 timeframe)
+              └─ Micro (M1 timeframe)
+```
+
+**Key Architectural Concept**: Each cycle contains 4 quarters (Q1, Q2, Q3, Q4) that represent market expansion phases. This quarter structure **repeats at every fractal level** - the same logic applies whether processing Monthly or Micro cycles.
+
+**CRITICAL: Cycle Independence Principle**
+
+Each cycle MUST process in complete isolation. Their calculations, state, and time boundaries must NOT interfere with each other:
+
+- Micro cycle calculations should NEVER affect Daily/Weekly/Monthly cycle state
+- Session quarter transitions should NOT disrupt Weekly or higher-level processing
+- Time boundaries must be strictly respected - cycles must not "bleed" into each other
+- Shared functions (universal processors) must maintain cycle-specific state properly
+- Pause periods or filters that apply to one cycle should NOT block other cycles unless intended
+
+**Example Violations:**
+- ❌ Universal processor sharing mutable state between cycles (corrupts data)
+- ❌ `is_in_pause` check blocking ALL cycles instead of just Daily
+- ❌ Weekly cycle using cached calculation results from Session cycle
+- ❌ Drawing object cleanup for one cycle deleting another cycle's objects
+- ❌ Array operations on one cycle's historical data affecting another cycle's arrays
+
+**When documenting discoveries, always clarify:**
+- Was cycle isolation maintained or violated?
+- Did the issue affect one cycle or contaminate others?
+- Does the fix preserve independence across all cycle levels?
+
+### What TTL-Specific Discoveries Matter
+
+**YES - Document these fractal cycle discoveries:**
+
+**Cycle Interaction Surprises:**
+- Unexpected behavior when quarters transition across multiple cycle levels simultaneously
+- Parent cycle state affecting child cycle detection
+- Timing conflicts between nested cycles (e.g., Daily Q4→Q1 during Session quarter transitions)
+
+**Quarter Boundary Edge Cases:**
+- Quarter detection failing at specific cycle levels but working at others
+- Transitional pause period (hour 17 ET) causing inconsistent behavior across cycles
+- Month/week boundaries creating duplicate or missing quarter markers
+
+**Rendering Issues by Cycle Level:**
+- Dividers stacking on wrong timeframes (cross-cycle contamination)
+- Historical vs current divider logic working differently for specific cycles
+- Visual object limits hit by certain cycle combinations but not others
+
+**Universal Processor Discoveries:**
+- DRY functions behaving differently for specific cycles despite identical logic
+- Edge cases that only manifest for certain cycle types (Monthly vs Micro)
+- State persistence issues with cycle-specific data structures (FractalCycle UDT, QuarterDividers UDT)
+
+**Performance Bottlenecks:**
+- Calculation overhead scaling differently across cycle levels
+- Array size growth issues for specific cycles (e.g., Monthly historical data vs Micro)
+- Drawing object limits reached due to cycle-specific rendering patterns
+
+**Timeframe Mapping Issues:**
+- Chart timeframe mismatches causing incorrect cycle visibility
+- Cycle detection working on expected timeframe but failing on adjacent ones
+- Missing timeframe filtering causing all cycles to render simultaneously
+
+**DRY Violations That Emerged:**
+- Universal functions that still required cycle-specific handling
+- Hardcoded cycle names or thresholds that should have been parameterized
+- Duplicated logic that survived refactoring due to subtle cycle differences
+
+### TTL Domain Knowledge to Capture
+
+**When documenting discoveries, ensure clarity on:**
+- **Which cycle level(s)** the issue affects (Monthly/Weekly/Daily/Session/Micro or all)
+- **Which quarter(s)** are involved (Q1/Q2/Q3/Q4 transitions)
+- **Timeframe context** (H4/H1/M15/M5/M1)
+- **Universal vs cycle-specific** behavior (does the pattern apply to all cycles?)
+- **Historical vs current** divider tier affected
+
+### Example TTL Discovery Worth Documenting
+
+**GOOD:**
+"Discovered that monthly quarter calculation (f_monthly_q_index_time) was only executing inside the if is_new_monthly block in v6 code. This meant monthly_q was only calculated once per month at Q1 start, causing Q2/Q3/Q4 transitions to never be detected. The v7 2-phase pattern (calculate quarters every bar, process transitions conditionally) fixes this. This affects ONLY the Monthly cycle due to its time-based calculation method - Weekly/Daily/Session/Micro use simpler hour-based detection that doesn't have this bug."
+
+**NOT WORTH:**
+"Changed the label positioning from bar_pos to bar_pos + 1 for better visual clarity."
+
+### Self-Check for TTL Context Updates
+
+Ask yourself:
+- Does this discovery affect how fractal cycles interact or behave?
+- Would this surprise the next person working on cycle detection or rendering?
+- Does this reveal a cycle-specific edge case not covered by universal logic?
+- Would knowing this prevent duplicate work or debugging time?
+- Does this change understanding of how the two-tier divider system works?

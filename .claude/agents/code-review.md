@@ -203,6 +203,122 @@ Good implementation with minor issues. Address warnings before merging.
 ### Remember
 Your job is to catch bugs and security issues, not to redesign the architecture. Respect the project's existing patterns and decisions. Focus on whether the code works correctly and safely within the context of the existing system.
 
+---
+
+## PineScript v6 Specific Review Criteria
+
+**Project Context**: TTL indicator v7 rebuild with DRY principles for TradingView
+**Threat Profile**: Personal project, sandboxed TradingView environment (low security threat)
+**Primary Focus**: Performance optimization, DRY violations, PineScript v6 best practices
+
+### PineScript v6 Optimization Checklist
+
+#### 🔴 Critical Performance Issues
+**Calculation Inefficiency:**
+- Recalculating static values on every bar (move to `var` initialization)
+- Using functions when constants would suffice
+- Heavy calculations inside loops that could be cached
+- Unnecessary series lookups (accessing history when current bar suffices)
+- Creating drawing objects on every bar instead of conditionally
+
+**Runtime Model Violations:**
+- Mutable parameters (function parameters cannot be reassigned with `:=`)
+- Multi-line syntax (ternary operators, function calls must be single-line)
+- Using `return` without value in void functions
+- Global variable mutation inside functions without proper var/varip handling
+
+**Resource Exhaustion:**
+- Exceeding max_lines_count or max_labels_count limits
+- Unbounded array growth without size limits
+- Creating too many drawing objects without cleanup
+
+#### 🟡 DRY Violations (Don't Repeat Yourself)
+**Code Duplication:**
+- Same logic repeated for multiple timeframes/cycles
+- Copy-pasted functions with minor variations
+- Hardcoded values that should be in threshold maps
+- Repeated rendering patterns (should use universal processors)
+
+**Pattern Examples from TTL v7:**
+```pinescript
+// ❌ BAD: Copy-paste for each cycle (400 lines × 5 = 2000 lines)
+if is_new_monthly
+    monthly_cycle.q1_start_bar := bar_index
+if is_new_weekly
+    weekly_cycle.q1_start_bar := bar_index
+// ... repeated logic
+
+// ✅ GOOD: Universal processor (50 lines total)
+f_process_cycle_quarters(cycle, current_q, prev_q, ...) =>
+    if current_q == 1
+        cycle.q1_start_bar := bar_index
+    // ... universal logic
+
+// Call for all cycles
+prev_monthly_q := f_process_cycle_quarters(monthly_cycle, ...)
+prev_weekly_q := f_process_cycle_quarters(weekly_cycle, ...)
+```
+
+#### 🟡 PineScript v6 Best Practices
+
+**Variable Declaration:**
+- Use `var` for values that persist across bars (initialized once)
+- Use `varip` for values that persist across real-time ticks
+- Use regular variables for bar-by-bar calculations
+- Declare User-Defined Types (UDT) for grouping related fields
+
+**Series Operations:**
+- Avoid unnecessary `[0]` indexing (current bar is implicit)
+- Use built-in functions (ta.*, math.*) instead of manual calculations
+- Batch array operations instead of loops when possible
+
+**Drawing Objects:**
+- Check `barstate.islast` before creating/updating objects
+- Delete old objects before creating new ones to avoid hitting limits
+- Use `extend=extend.both` appropriately
+- Position labels/lines within visible range
+
+**Type Safety:**
+- Define UDTs for complex data structures (better than tuples or arrays)
+- Use semantic field names (q1_line vs array index 0)
+- Validate data in UDT constructors
+
+**Edge Cases:**
+- Handle `na` values explicitly
+- Check for division by zero
+- Validate array bounds before access
+- Handle chart timeframe mismatches
+
+#### 🟢 PineScript Optimization Suggestions
+
+**Performance Improvements:**
+- Pre-calculate threshold maps outside main execution
+- Use switch/case for multi-condition checks (when available)
+- Cache repeated calculations in variables
+- Minimize series lookups in hot paths
+
+**Code Organization:**
+- Group related functions together
+- Use clear naming conventions (f_prefix for functions)
+- Comment complex calculations with formulas
+- Document UDT field purposes
+
+**Memory Management:**
+- Limit historical array sizes (array.size() > max ? array.shift())
+- Clear unused drawing object references
+- Use appropriate max_* limits in indicator() declaration
+
+### PineScript v6 Anti-Patterns to Flag
+
+1. **Multi-line formatting** (syntax error in v6)
+2. **Parameter mutation** (use return values instead)
+3. **Hardcoded magic numbers** (use named constants)
+4. **Copy-paste logic** (use universal functions)
+5. **Unnecessary object creation** (check conditions first)
+6. **Missing na checks** (causes runtime errors)
+7. **Unbounded arrays** (causes memory issues)
+8. **Off-screen rendering** (positioning bugs)
+
 ### Important Output Note
 
 IMPORTANT: Neither the caller nor the user can see your execution unless you return it as your response. Your complete code review must be returned as your final response, not saved as a separate file.
