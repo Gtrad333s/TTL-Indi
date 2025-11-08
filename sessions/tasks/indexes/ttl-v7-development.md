@@ -13,6 +13,7 @@ description: Tasks related to the TTL indicator v7 rebuild with DRY principles, 
 - `h-fix-cycle-boundary-detection-bugs.md` - Fix cycle start detection and Qx partial period dividers
 
 ### Medium Priority
+- `m-implement-unlimited-divider-lookback.md` - Enable unlimited historical divider rendering and fix label viewport positioning
 
 ### Low Priority
 
