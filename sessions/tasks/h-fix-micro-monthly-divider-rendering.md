@@ -12,6 +12,34 @@ submodules: [TTL_v7_Rebuild]
 
 After implementing the two-stage cycle detection pattern fixes in task `h-fix-cycle-boundary-detection-bugs`, visual testing revealed two critical rendering bugs:
 
+## Architectural Requirements (Proper Understanding)
+
+### Micro Cycle Architecture
+**Implement 22.5-minute quarters that nest cleanly inside 6-hour Session cycles:**
+- Each Session cycle = 6 hours = 360 minutes = 16 micro quarters
+- Each Session QUARTER = 90 minutes = 4 micro quarters (Q1/Q2/Q3/Q4)
+- Micro cycles RESET at every session quarter boundary (every 90 minutes)
+- Within each 90-minute session quarter:
+  - Micro Q1: 0-22.5 minutes
+  - Micro Q2: 22.5-45 minutes
+  - Micro Q3: 45-67.5 minutes
+  - Micro Q4: 67.5-90 minutes
+- Must render both historical and live dividers
+- Must expose Session-aware state (knows which session quarter it's inside)
+
+### Monthly Cycle Architecture
+**Track and draw Monthly quarter transitions by weekly cycle starts (Sun 18:00 ET):**
+- Monthly quarters align to weekly cycle boundaries (NOT time-based percentage)
+- Each Sunday 18:00 ET marks a new week within the month
+- Label weeks as Q1/Q2/Q3/Q4/Qx based on position in month:
+  - Q1 = First full week (first Sunday 18:00 after first Monday)
+  - Q2 = Second week
+  - Q3 = Third week
+  - Q4 = Fourth week
+  - Qx = Partial weeks (at start before first full week, or at end after Q4)
+- Weekly Qx label: Thursday 18:00 → Sunday 18:00 (partial period within weekly cycle)
+- Must track EVERY Sunday 18:00 and assign appropriate quarterly label
+
 ### Micro Cycle Divider Bug
 **Current Behavior:** Micro cycle dividers only show Q1 labels at new session quarter transitions (every 90 minutes). The micro cycle is not calculating or rendering Q2/Q3/Q4 quarters within each session quarter.
 
