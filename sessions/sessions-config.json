@@ -38,7 +38,7 @@
     "commit_style": "detailed",
     "auto_merge": true,
     "auto_push": false,
-    "has_submodules": false
+    "has_submodules": true
   },
   "environment": {
     "os": "windows",
